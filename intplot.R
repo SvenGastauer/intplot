@@ -47,7 +47,7 @@ intplot <- function(dataset,Lon="Longitude",Lat="Latitude",variable,
   
   #Needed libraries
   packages <- c("shiny", "ggplot2", "ggmap", "Cairo", "colorRamps", "RColorBrewer","DT")
-  source("check.package.R")
+  
   for(pack in packages) {install_package(pack)}
   
   
