@@ -61,11 +61,11 @@ intplot <- function(dataset,Lon="Longitude",Lat="Latitude",variable,
   
   #Get lon lat limits
   lons <- range(na.omit(dataset[[Lon]]))
-  lons[1]<-floor(lons[1])-mapoffset
-  lons[2]<-ceiling(lons[2])+mapoffset
+  lons[1]<-min(lons[1])-mapoffset
+  lons[2]<-max(lons[2])+mapoffset
   lats <- range(na.omit(dataset[[Lat]]))
-  lats[1]<-floor(lats[1])-mapoffset
-  lats[2]<-ceiling(lats[2])+mapoffset
+  lats[1]<-min(lats[1])-mapoffset
+  lats[2]<-max(lats[2])+mapoffset
 #download map data
   message("Getting background map...")
 aus <- get_map(location = c( lon = mean(dataset[[Lon]]), lat = mean(dataset[[Lat]])),
@@ -132,12 +132,14 @@ ui <- fluidPage(
                               choices = c("1",numval))),
            column(width = 9,
                   h4("More Plots:"),
-                  plotOutput("moreplots1",height = 500)
-                  
-                  #     ),
-                  #     column(width = 3,
-                  #            verbatimTextOutput("plot_brushinfo")
-           )
+                  plotOutput("moreplots1",height = 500,
+                             dblclick = "moreplots_dblclick",
+                             click = "plot_click",
+                             brush = brushOpts(
+                               id = "moreplots_brush",
+                               resetOnNew = TRUE)),
+                  verbatimTextOutput("info")
+                  )
   )
 ) 
 
@@ -146,6 +148,7 @@ server <- function(input, output) {
   ranges2 <- reactiveValues(x = NULL, y = NULL)
   xvar <- "Longitude"
   yvar <- "Latitude"
+  rangesm <- reactiveValues(x = NULL)
   
   output$plot2 <- renderPlot({
     ggmap(aus) +
@@ -162,16 +165,33 @@ server <- function(input, output) {
   })
   
   output$moreplots1 <- renderPlot({
-    ggplot(data=brushedPoints(dataset, input$plot3_brush, "Longitude", "Latitude"),
+    
+    pp <-ggplot(data=brushedPoints(dataset, input$plot3_brush, "Longitude", "Latitude"),
            aes_string(x=input$select_x,y=input$select_y,col=input$select_col,size=input$select_size)) +
       geom_point(data=brushedPoints(dataset, input$plot3_brush, "Longitude", "Latitude"))+
       scale_color_gradientn(colours=matlab.like(10))+
       theme_bw()
+    if(class(dataset[[input$select_x]])[1]=="POSIXct"){
+      if(length(rangesm$x>0)){
+          rangesm$x <- as.POSIXct(rangesm$x,origin="1970-01-01")
+          pp+scale_x_datetime(limits = rangesm$x)
+      }else{
+        pp
+      }
+    }else{
+      pp+coord_cartesian(xlim=rangesm$x,ylim = rangesm$y)
+    }
   })
   
   
   output$plot_brushed_points <- renderDataTable({
     brushedPoints(dataset, input$plot3_brush, "Longitude", "Latitude")
+  })
+  
+  output$info <- renderPrint({
+    # With base graphics, need to tell it what the x and y variables are.
+    nearPoints(dataset, input$plot_click, xvar = input$select_x, yvar = input$select_y)
+    # nearPoints() also works with hover and dblclick events
   })
   
   # When a double-click happens, check if there's a brush on the plot.
@@ -201,7 +221,17 @@ server <- function(input, output) {
     }
   })
   
-  
+  observeEvent(input$moreplots_dblclick, {
+    brush <- input$moreplots_brush
+    if (!is.null(brush)) {
+      rangesm$x <- c(brush$xmin, brush$xmax)
+      rangesm$y <- c(brush$ymin, brush$ymax)
+      
+    } else {
+      rangesm$x <- NULL
+      rangesm$y <- NULL
+    }
+  })
   
 }
 
