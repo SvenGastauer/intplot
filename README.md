@@ -22,7 +22,7 @@ maximal example:
 `source('intplot.R')  
 intplot(mydata, "Lons","Lats","coolvariable", 0.5, "google", "terrain","color")`
 minimal example:  
-`intplot(mydata,"variable") #assuming mydata contains columns Longitude, Latitude, variable `
+`intplot(mydata,variable="variable") #assuming mydata contains columns Longitude, Latitude, variable `
 
 Result example:  
 ![alt text](https://github.com/SvenGastauer/intplot/blob/master/intplot.png "Results example")
